@@ -1,0 +1,57 @@
+name: Testing Farm test
+on:
+  pull_request: {}
+
+jobs:
+  tests:
+    runs-on: [self-hosted, linux, testing-farm]
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.21']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      - name: prepare env
+        run: |
+          sudo yum install podman openssh-server git make -y
+          ssh-keygen -t rsa -N '' -f id_rsa -q 
+      - name: reserve machine from testing farm
+        env: 
+          TESTING_FARM_API_TOKEN: ${{ secrets.TESTING_FARM_API_TOKEN }}
+        run: |
+          export TESTING_FARM_API_TOKEN='$TESTING_FARM_API_TOKEN'
+          eval $(ssh-agent)
+          testing-farm reserve --compose Fedora-40-aarch64 --arch aarch64 --ssh-public-key id_rsa.pub --no-autoconnect | tee info
+          machine=`tail -n 1 info`
+          echo ${machine##*@} > host
+          echo "root" > username
+          #ssh -o StrictHostKeyChecking=no -i id_rsa root@$host
+      - name: build CRC installer
+        run: |
+          mkdir -p crc/custom_embedded
+          cd crc
+          make linux-release CUSTOM_EMBED=true EMBED_DOWNLOAD_DIR=custom_embedded
+          ls custom_embedded
+      - name: install CRC in the resevered machine
+        run: |
+          podman run --rm -d --name crc-linux-install \
+          -e TARGET_HOST=$(cat host) \
+          -e TARGET_HOST_USERNAME=$(cat username) \
+          -e TARGET_HOST_KEY_PATH=id_rsa \
+          -e TARGET_FOLDER=crc-support \
+          -e TARGET_CLEANUP='false' \
+          -e OUTPUT_FOLDER=/data \
+          -e DEBUG='true' \
+          -v ${PWD}:/data:z \
+          -v ${PWD}/crc-windows-installer.zip:/opt/crc-support/crc-windows-installer.zip:z \
+          quay.io/rhqp/crc-support:v0.5-linux crc-support/run.ps1 \
+            -targetPath "/Users/$(cat username)/crc-support" \
+            -download 'false' \
+            -install 'true' \
+            -forceFresh 'false'
+          podman logs -f crc-win-support
+
