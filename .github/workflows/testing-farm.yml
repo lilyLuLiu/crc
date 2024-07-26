@@ -1,0 +1,41 @@
+name: Testing Farm test
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+# The concurrency key is used to prevent multiple workflows from running at the same time
+#concurrency:
+#  group: my-concurrency-group
+#  cancel-in-progress: true
+
+permissions:
+  contents: read
+  # This is required for the ability to create Issue comment
+  pull-requests: write
+  # This is required for the ability to create/update the Pull request status
+  statuses: write
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    # Let's schedule tests only on user request. NOT automatically.
+    # Only repository owner or member can schedule tests
+    #if: |
+    #  github.event.issue.pull_request
+    #  && contains(github.event.comment.body, '[test]')
+    #  && contains(fromJson('["OWNER", "MEMBER"]'), github.event.comment.author_association)
+    steps:
+      - name: Schedule test on Testing Farm
+        uses: sclorg/testing-farm-as-github-action@v2
+        with:
+          api_key: ${{ secrets.TF_API_KEY }}
+          compose: Fedora-40
+          arch: x86_64
+          git_ref: main
+          secrets: "PULL_SECRET=${{ secrets.PULL_SECRET }}"
+          tmt_plan_regex: smoke_plan
+          #variables: "SOME_DUMMY_VARIABLE =FOO_BAR_VARIABLE;OS_VARIABLE=DUMMY_OS"
+          #tmt_plan_regex: "tf-test"
+          #tmt_path: "test"
