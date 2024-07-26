@@ -1,0 +1,149 @@
+name: tester-linux
+
+on:
+  workflow_run:
+    workflows: [Build Windows artifacts]
+    types:
+      - completed
+
+jobs:
+  tests:
+    runs-on: [self-hosted, linux, testing-farm]
+    strategy:
+      fail-fast: false
+      matrix:
+        go: ['1.21']
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ matrix.go }}
+      
+      - name: prepare env
+        run: |
+          sudo yum install podman openssh-server git make -y
+          echo "commit_sha=${commit_sha}" >> "$GITHUB_ENV"
+          mkdir ${{ env.commit_sha }}
+          cd ${{ env.commit_sha }}
+
+          #timestamp=`date +%s`
+          #mkdir $timestamp
+          #echo "timestamp=$timestamp" >> $GITHUB_ENV
+          $cd $timestamp
+
+          ssh-keygen -t rsa -N '' -f id_rsa -q 
+          eval $(ssh-agent -s)
+          echo $SSH_AUTH_SOCK > ssh_auth_sock
+          echo $SSH_AGENT_PID > ssh_agent_pid
+          #kill $(cat ssh_agent_pid)
+          ssh-add id_rsa
+
+      - name: reserve machine from testing farm
+        working-directory: ${{ env.timestamp }}
+        env: 
+          TESTING_FARM_API_TOKEN: ${{ secrets.TESTING_FARM_API_TOKEN }}
+          PULL_SECRET: ${{ secrets.PULL_SECRET }}
+        run: |
+          echo "${PULL_SECRET}" > pull-secret
+          export TESTING_FARM_API_TOKEN=${TESTING_FARM_API_TOKEN}
+          testing-farm reserve --compose Fedora-40 --duration 240 --arch aarch64 --ssh-public-key id_rsa.pub --no-autoconnect | tee info
+          machine=`tail -n 1 info`
+          echo ${machine##*@} > host
+          echo root > username
+          echo proxy > bastion_username
+          echo testing-farm.io > bastion_host
+          #ssh -o StrictHostKeyChecking=no -i id_rsa root@$host
+     
+      - name: Download linux binary
+        working-directory: ${{ env.timestamp }}
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-binary
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Download qe oci image
+        working-directory: ${{ env.timestamp }}
+        id: download-qe-oci-image-artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: crc-e2e-linux-arm64
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Install CRC on host
+        working-directory: ${{ env.timestamp }}
+        run: |
+          podman run --rm -d --privileged --name crc-linux-install \
+            -e TARGET_HOST=$(cat host) \
+            -e TARGET_HOST_USERNAME=$(cat username) \
+            -e TARGET_HOST_KEY_PATH=/data/id_rsa \
+            -e BASTION_HOST_USERNAME=$(cat bastion_username) \
+            -e BASTION_HOST=$(cat bastion_host) \
+            -e TARGET_FOLDER=crc-support \
+            -e TARGET_CLEANUP='false' \
+            -e OUTPUT_FOLDER=/data \
+            -e DEBUG='true' \
+            -e SSH_AUTH_SOCK=$(cat ssh_auth_sock) \
+            -v "$(cat ssh_auth_sock):$(cat ssh_auth_sock)" \
+            -v ${PWD}:/data:z \
+            -v ${PWD}/crc:/opt/crc-support/crc:z \
+            quay.io/rhqp/crc-support:v0.5.1-linux crc-support/install.sh crc-support/crc
+          podman logs -f crc-linux-install
+
+      - name: Run CRC e2e test
+        working-directory: ${{ env.timestamp }}
+        run: |
+          # load image
+          podman load -i crc-e2e-linux-arm64.tar
+          # run
+          cmd="crc-qe/run.sh -junitFilename crc-e2e-junit.xml -targetFolder crc-qe"
+          cmd_microshift="${cmd} -e2eTagExpression '@story_microshift'"
+          cmd_openshift="${cmd} -e2eTagExpression '~@minimal && ~@story_microshift'"
+          podman run --rm -d --privileged --name crc-e2e \
+            -e TARGET_HOST=$(cat host) \
+            -e TARGET_HOST_USERNAME=$(cat username) \
+            -e TARGET_HOST_KEY_PATH=/data/id_rsa \
+            -e BASTION_HOST_USERNAME=$(cat bastion_username) \
+            -e BASTION_HOST=$(cat bastion_host) \
+            -e TARGET_FOLDER=crc-qe \
+            -e TARGET_RESULTS=results \
+            -e OUTPUT_FOLDER=/data \
+            -e DEBUG=true \
+            -e SSH_AUTH_SOCK=$(cat ssh_auth_sock) \
+            -v "$(cat ssh_auth_sock):$(cat ssh_auth_sock)" \
+            -v $PWD/pull-secret:/opt/crc/pull-secret:z \
+            -v $PWD:/data:z \
+            quay.io/crcont/crc-e2e:gh-linux-arm64 \
+                ${cmd_openshift} 
+          podman logs -f crc-e2e
+
+      - name: Test Report
+        working-directory: ${{ env.timestamp }}
+        id: test-report
+        uses: mikepenz/action-junit-report@v4
+        if: always() 
+        with:
+          fail_on_failure: true
+          include_passed: true
+          detailed_summary: true
+          require_tests:  true
+          report_paths: '**/*.xml'
+      
+      - name: Upload e2e results
+        working-directory: ${{ env.timestamp }}
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: linux-e2e-test
+          path: |
+            **/*.xml
+            **/*.results
+            **/*.log
+
+      - name: Env clear
+        run: |
+          kill $(cat ${{ env.commit_sha }}/ssh_agent_pid)
+          rm -r ${{ env.commit_sha }}
+
