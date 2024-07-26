@@ -1,0 +1,16 @@
+summary: Basic smoke test
+
+description: |
+  The plan for testing skipping of empty plans.
+
+provision:
+  how: container
+  image: fedora:latest
+
+execute:
+    how: tmt
+    script: |
+        set +x
+        echo "Set 11*11 to testfile"
+        echo $((11*11)) > testfile
+        cat testfile
