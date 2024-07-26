@@ -1,0 +1,7 @@
+summary: Basic smoke test
+execute:
+    how: tmt
+    script: |
+        set +x
+        echo "${PULL_SECRET}" > ~/crc-pull-secret
+        cat ~/crc-pull-secret
