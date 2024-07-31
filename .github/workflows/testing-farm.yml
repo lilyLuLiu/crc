@@ -33,6 +33,7 @@ jobs:
           api_key: ${{ secrets.TF_API_KEY }}
           compose: Fedora-40
           arch: x86_64
+          git_ref: main
           secrets: "PULL_SECRET=${{ secrets.PULL_SECRET }}"
           tmt_plan_regex: smoke_plan
           #variables: "SOME_DUMMY_VARIABLE =FOO_BAR_VARIABLE;OS_VARIABLE=DUMMY_OS"
