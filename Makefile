@@ -2,11 +2,11 @@ all: install
 
 SHELL := /bin/bash -o pipefail
 
-OPENSHIFT_VERSION ?= 4.15.17
+OPENSHIFT_VERSION ?= 4.16.0
 OKD_VERSION ?= 4.15.0-0.okd-2024-02-23-163410
-MICROSHIFT_VERSION ?= 4.15.17
+MICROSHIFT_VERSION ?= 4.16.0
 BUNDLE_EXTENSION = crcbundle
-CRC_VERSION = 2.38.0
+CRC_VERSION = 2.39.0
 COMMIT_SHA?=$(shell git rev-parse --short=6 HEAD)
 MACOS_INSTALL_PATH = /usr/local/crc
 CONTAINER_RUNTIME ?= podman
@@ -311,7 +311,7 @@ linux-release: clean lint linux-release-binary embed_crc_helpers gen_release_inf
 	mkdir $(RELEASE_DIR)
 
 	@mkdir -p $(BUILD_DIR)/crc-linux-$(CRC_VERSION)-${GOARCH}
-	@cp LICENSE $(BUILD_DIR)/linux-amd64/crc $(BUILD_DIR)/crc-linux-$(CRC_VERSION)-${GOARCH}
+	@cp LICENSE $(BUILD_DIR)/linux-${GOARCH}/crc $(BUILD_DIR)/crc-linux-$(CRC_VERSION)-${GOARCH}
 	tar cJSf $(RELEASE_DIR)/crc-linux-${GOARCH}.tar.xz -C $(BUILD_DIR) crc-linux-$(CRC_VERSION)-${GOARCH} --owner=0 --group=0
 
 	@cp $(RELEASE_INFO) $(RELEASE_DIR)/$(RELEASE_INFO)
