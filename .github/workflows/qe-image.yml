@@ -1,4 +1,4 @@
-name: Push qe images for new tag test1
+name: Push qe images for new tag test2
 
 on:
   push:
