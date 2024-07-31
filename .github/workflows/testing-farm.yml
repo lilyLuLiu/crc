@@ -1,8 +1,5 @@
 name: Testing Farm test
 on:
-  push:
-    branches:
-      - main
   pull_request: {}
 
 # The concurrency key is used to prevent multiple workflows from running at the same time
@@ -36,6 +33,6 @@ jobs:
           git_ref: main
           secrets: "PULL_SECRET=${{ secrets.PULL_SECRET }}"
           tmt_plan_regex: smoke_plan
-          #variables: "SOME_DUMMY_VARIABLE =FOO_BAR_VARIABLE;OS_VARIABLE=DUMMY_OS"
+          variables: "PR_ID=${{ github.event.pull_request.head }}"
           #tmt_plan_regex: "tf-test"
           #tmt_path: "test"

@@ -3,5 +3,5 @@ execute:
     how: tmt
     script: |
         set +x
-        echo "${PULL_SECRET}" > ~/crc-pull-secret
-        cat ~/crc-pull-secret
+        echo "${PR_ID}" > PR.txt
+        cat PR.txt
