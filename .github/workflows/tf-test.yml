@@ -1,4 +1,4 @@
-name: Testing Farm test
+name: Secret test
 on:
   pull_request: {}
 
