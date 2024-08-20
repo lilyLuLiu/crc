@@ -1,8 +1,6 @@
 name: Secret test
 on:
   pull_request: {}
-env:
-  QUAY_NAME: ${{ secrets.QUAY_IO_USERNAME }}
 jobs:
   tests:
     runs-on: ubuntu-24.04
