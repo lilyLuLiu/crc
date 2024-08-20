@@ -8,6 +8,10 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
+      - name: test
+        env:
+          MYSECRET: ${{ secrets.QUAY_IO_USERNAME }}
+        run: echo $MYSECRET
       - name: test secret
         run: |
           echo test123
