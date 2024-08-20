@@ -10,8 +10,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: test secret
         run: |
-          echo test
+          echo test123
+          echo ${{ secrets.QUAY_IO_USERNAME }}
           echo $QUAY_NAME
           echo "$QUAY_NAME"
           echo ${{ QUAY_NAME }}
-          echo ${{ env.QUAY_NAME }}
+          
