@@ -11,5 +11,8 @@ jobs:
       - name: test
         env:
           MYSECRET: ${{ secrets.QUAY_IO_USERNAME }}
-        run: echo $MYSECRET
+        run: |
+          echo $MYSECRET
+          export myname=$MYSECRET
+          echo $myname
           
