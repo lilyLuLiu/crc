@@ -1,17 +1,14 @@
 name: Secret test
 on:
   pull_request: {}
-
+env:
+  QUAY_NAME: ${{ secrets.QUAY_IO_USERNAME }}
 jobs:
   tests:
     runs-on: ubuntu-24.04
-
     steps:
       - uses: actions/checkout@v4
       - name: test secret
-        shell: bash
-        env:
-          QUAY_NAME: ${{ secrets.QUAY_IO_USERNAME }}
         run: |
           echo $QUAY_NAME
           echo "$QUAY_NAME"
