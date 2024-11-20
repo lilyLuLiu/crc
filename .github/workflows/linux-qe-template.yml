@@ -46,7 +46,7 @@ jobs:
           if [[ "${{inputs.qe-type}}" == "e2e" ]]; then
             status_context="${status_context}-${{inputs.preset}}"
           fi
-          status_context="${status_context}/windows-${{matrix.windows-version}}-${{matrix.windows-featurepack}}"
+          status_context="${status_context}/Linux-ARM64"
           echo "status_context=${status_context}" >> "$GITHUB_ENV"
 
           echo "${PULL_SECRET}" > pull-secret
@@ -107,13 +107,14 @@ jobs:
           echo ${request:1} > requestid
 
           # Create a non-root user for testing on the reserved machine
-          ${machine:1} 'useradd crctest' < /dev/null
-          ${machine:1} 'echo "crctest:redhat" | chpasswd' < /dev/null
-          ${machine:1} 'usermod -aG wheel crctest' < /dev/null
-          ${machine:1} 'echo "crctest ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/crctest-users' < /dev/null
-          ${machine:1} 'mkdir -p /home/crctest/.ssh' < /dev/null
-          ${machine:1} 'cp /root/.ssh/authorized_keys /home/crctest/.ssh/' < /dev/null
-          ${machine:1} 'chown crctest /home/crctest/.ssh/authorized_keys' < /dev/null
+          ssh_cmd="ssh -i id_rsa ${machine##*ssh}"
+          $ssh_cmd 'useradd crctest' < /dev/null
+          $ssh_cmd 'echo "crctest:redhat" | chpasswd' < /dev/null
+          $ssh_cmd 'usermod -aG wheel crctest' < /dev/null
+          $ssh_cmd 'echo "crctest ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/crctest-users' < /dev/null
+          $ssh_cmd 'mkdir -p /home/crctest/.ssh' < /dev/null
+          $ssh_cmd 'cp /root/.ssh/authorized_keys /home/crctest/.ssh/' < /dev/null
+          $ssh_cmd 'chown crctest /home/crctest/.ssh/authorized_keys' < /dev/null
 
           # Install CRC on the reserved machine
           podman run --rm -d --privileged --name crc-linux-install-${{inputs.qe-type}}-${{inputs.preset}} \

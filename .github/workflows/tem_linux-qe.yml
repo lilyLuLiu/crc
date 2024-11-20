@@ -1,0 +1,25 @@
+name: tmp-tester-linux
+
+on:
+  workflow_dispatch:
+  
+jobs:
+  linux-qe:
+    uses: lilyLuLiu/crc/.github/workflows/linux-qe-template.yml@main
+    strategy:
+      fail-fast: false
+      matrix:
+        qe-type: ['e2e','integration']
+        preset: ['openshift', 'microshift', 'all']
+        exclude:
+        - qe-type: 'e2e'
+          preset: 'all'
+        - qe-type: 'integration'
+          preset: 'openshift'
+        - qe-type: 'integration'
+          preset: 'microshift'
+    with:
+      trigger-workflow-run-id: ${{ github.event.workflow_run.id }}
+      qe-type: ${{matrix.qe-type}}
+      preset: ${{matrix.preset}}
+    secrets: inherit
