@@ -10,9 +10,8 @@ jobs:
   linux-qe:
     if: | 
       github.event.workflow_run.conclusion == 'success' &&
-      github.event.workflow_run.event == 'pull_request' &&
       github.event.workflow_run.triggering_actor != 'dependabot[bot]'
-    uses: crc-org/crc/.github/workflows/linux-qe-template.yml@main
+    uses: lilyLuLiu/crc/.github/workflows/linux-qe-template.yml@tf_update
     strategy:
       fail-fast: false
       matrix:
