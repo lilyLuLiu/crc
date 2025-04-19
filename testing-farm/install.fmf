@@ -1,0 +1,22 @@
+---
+summary: Install CRC
+
+description: |
+  Install CRC
+
+discover:
+  how: fmf
+  test:
+    - /testing-farm/script
+
+provision:
+  hardware:
+    virtualization:
+      is-virtualized: false
+      is-supported: true
+    compatible:
+      distro: fedora40
+
+execute:
+  how: tmt
+
