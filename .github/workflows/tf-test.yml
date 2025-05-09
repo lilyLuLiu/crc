@@ -1,0 +1,16 @@
+name: Secret test
+on:
+  pull_request: {}
+jobs:
+  tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: test
+        env:
+          MYSECRET: ${{ secrets.QUAY_IO_USERNAME }}
+        run: |
+          echo $MYSECRET
+          export myname=$MYSECRET
+          echo $myname
+          
