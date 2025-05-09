@@ -1,0 +1,7 @@
+summary: Basic smoke test
+execute:
+    how: tmt
+    script: |
+        set +x
+        echo "${PR_ID}" > PR.txt
+        cat PR.txt
