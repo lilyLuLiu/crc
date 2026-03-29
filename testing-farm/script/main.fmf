@@ -1,0 +1,15 @@
+---
+summary: Run an arbitrary script
+
+description: |
+  Runs an arbitrary script specified by the SCRIPT environment variable.
+
+  If not script given, `cat /etc/os-release` is used.
+
+test: |
+  source prepare.sh
+  ./build.sh
+  ./test.sh
+
+# set the duration to 1h in case of more demanding commands
+duration: 60m
